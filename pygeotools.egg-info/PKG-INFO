@@ -2,9 +2,9 @@ Metadata-Version: 1.0
 Name: pygeotools
 Version: 0.6.0
 Summary: Libraries and command-line utilities for geospatial data processing/analysis
-Home-page: https://github.com/dshean/pygeotools
-Author: David Shean
-Author-email: dshean@gmail.com
+Home-page: https://github.com/TristanBlus/pygeotools
+Author: David Shean, modified by Lei Guo
+Author-email: tristanblus@outlook.com
 License: MIT
 Description: [![DOI](https://zenodo.org/badge/73121780.svg)](https://zenodo.org/badge/latestdoi/73121780)
         

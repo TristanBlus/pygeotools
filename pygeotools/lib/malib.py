@@ -1834,6 +1834,7 @@ def bin_x_by_z(x, z, bin_width=10.0):
     #plt.boxplot(x_bin_dict_vals)
     return x_bin_dict
 
+
 #=======================
 #Gridding 
 #=======================

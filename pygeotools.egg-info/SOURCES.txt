@@ -6,10 +6,12 @@ pygeotools/apply_mask.py
 pygeotools/clip_raster_by_shp.py
 pygeotools/copyproj.py
 pygeotools/filter.py
+pygeotools/hull.py
 pygeotools/make_stack.py
 pygeotools/proj_select.py
 pygeotools/raster2shp.py
 pygeotools/replace_ndv.py
+pygeotools/shp_clip_by_raster.py
 pygeotools/trim_ndv.py
 pygeotools/warptool.py
 pygeotools.egg-info/PKG-INFO
