@@ -808,7 +808,7 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     a = ~(a.astype('Bool'))
     return a
 
-def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=False, verbose=False):
+def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=True, verbose=False):
     """Clip an input raster by input polygon shapefile for given extent
 
     """
@@ -865,7 +865,7 @@ def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=F
     if not bbox:
         #Create binary mask from shp
         mask = shp2array(shp_fn, r_ds)
-        if invert:
+        if invert is not False:
             mask = ~(mask)
         #Now apply the mask
         r = np.ma.array(r, mask=mask)
