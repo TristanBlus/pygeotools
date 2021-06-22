@@ -805,7 +805,7 @@ def shp2array(shp_fn, r_ds=None, res=None, extent=None, t_srs=None):
     b.SetNoDataValue(ndv)
     gdal.RasterizeLayer(m_ds, [1], outlyr, burn_values=[1])
     a = b.ReadAsArray()
-    a = ~(a.astype('Bool'))
+    a = ~(a.astype('bool'))
     return a
 
 def raster_shpclip(r_fn, shp_fn, extent='raster', bbox=False, pad=None, invert=True, verbose=False):
@@ -1613,26 +1613,64 @@ def clip_raster_by_shp(dem_fn, shp_fn):
 def clip_shp(shp_fn, extent, out_fn=None):
     import subprocess
     if out_fn is None:
-    	out_fn = os.path.splitext(shp_fn)[0]+'_clip.shp'
-    #out_fn = os.path.splitext(shp_fn)[0]+'_clip'+os.path.splitext(shp_fn)[1]
+        out_fn = os.path.splitext(shp_fn)[0] + '_clip.shp'
+    # out_fn = os.path.splitext(shp_fn)[0]+'_clip'+os.path.splitext(shp_fn)[1]
     extent = [str(i) for i in extent]
-    #cmd = ['ogr2ogr', '-f', 'ESRI Shapefile', out_fn, shp_fn, '-clipsrc']
+    # cmd = ['ogr2ogr', '-f', 'ESRI Shapefile', out_fn, shp_fn, '-clipsrc']
     cmd = ['ogr2ogr', '-f', 'ESRI Shapefile', '-overwrite', '-t_srs', 'EPSG:4326', out_fn, shp_fn, '-clipdst']
     cmd.extend(extent)
     print(cmd)
     subprocess.call(cmd, shell=False)
 
-#Need to combine these with shp2array
-#Deal with different srs
 
-#Rasterize shp to binary mask
+# trim empty rows and columns (with nodata value) from input raster
+# this will return trimmed array
+def trim_ndv_fn(fn, writeout=True):
+    src_ds = gdal.Open(fn)
+    src_gt = src_ds.GetGeoTransform()
+    bma = iolib.ds_getma(src_ds)
+
+    r_bma, out_gt = trim_ndv_bma(bma, src_gt)
+
+    if writeout:
+        out_fn = os.path.splitext(src_fn)[0] + '_trim.tif'
+        print("Writing out: %s" % out_fn)
+        # Extract valid subsection from input array
+        # indices+1 are necessary to include valid row/col on right and bottom edges
+        iolib.writeGTiff(bma[edge_env[0]:edge_env[1] + 1, edge_env[2]:edge_env[3] + 1], out_fn, src_ds, gt=out_gt)
+
+    return r_bma, out_gt
+
+
+def trim_ndv_bma(bma, src_gt):
+    from pygeotools.lib import malib
+    edge_env = malib.edgefind2(bma, intround=True)
+
+    out_gt = list(src_gt)
+    # This should be OK, as edge_env values are integer multiples, and the initial gt values are upper left pixel corner
+    # Update UL_X
+    out_gt[0] = src_gt[0] + src_gt[1] * edge_env[2]
+    # Update UL_Y, note src_gt[5] is negative
+    out_gt[3] = src_gt[3] + src_gt[5] * edge_env[0]
+    out_gt = tuple(out_gt)
+
+    bma_trim = bma[edge_env[0]:edge_env[1] + 1, edge_env[2]:edge_env[3] + 1]
+
+    return bma_trim, out_gt
+
+
+# Need to combine these with shp2array
+# Deal with different srs
+
+# Rasterize shp to binary mask
 def fn2mask(fn, r_ds):
     v_ds = org.Open(fn)
     mask = ds2mask(v_ds, r_ds)
     v_ds = None
     return mask
 
-#Rasterize ogr dataset to binary mask
+
+# Rasterize ogr dataset to binary mask
 def ds2mask(v_ds, r_ds):
     lyr = v_ds.GetLayer()
     mask = lyr2mask(lyr, r_ds)
@@ -1654,7 +1692,7 @@ def lyr2mask(lyr, r_ds):
     #Rasterize with values of 1
     gdal.RasterizeLayer(m_ds, [1], lyr, burn_values=[1])
     a = b.ReadAsArray()
-    mask = a.astype('Bool')
+    mask = a.astype('bool')
     m_ds = None
     return ~mask
 
