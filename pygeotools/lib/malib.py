@@ -1660,7 +1660,8 @@ def get_stats_dict(a_in, full=True):
 
 def print_stats(a, full=False):
     stats = get_stats(a, full)
-    print("count: %i min: %0.2f max: %0.2f mean: %0.2f std: %0.2f med: %0.2f mad: %0.2f q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f spread: %0.2f" % stats)
+    print(
+        "Count: %i Min: %0.2f Max: %0.2f Mean: %0.2f STD: %0.2f med: %0.2f NMAD: %0.2f q1: %0.2f q2: %0.2f iqr: %0.2f mode: %0.2f p16: %0.2f p84: %0.2f Spread: %0.2f" % stats)
     return stats
 
 def rmse(a):
