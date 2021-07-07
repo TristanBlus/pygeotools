@@ -1,7 +1,7 @@
 [![DOI](https://zenodo.org/badge/73121780.svg)](https://zenodo.org/badge/latestdoi/73121780)
 
 # pygeotools
-Libraries and command line tools for geospatial data processing and analysis
+Libraries and command line tools for geospatial data processing and analysis. This toolkits were modified (fixed some bugges and added a few functions) based on [`pygeotools`](https://github.com/dshean/pygeotools) by D. Shean.
 
 ## Features
 - Resample/warp rasters to common resolution/extent/projection
@@ -73,27 +73,22 @@ or, from the command line...
 
 `make_stack.py -tr 'min' -te 'union' 20*.tif`
 
-## Documentation
-
-http://pygeotools.readthedocs.io
 
 ## Installation
-
-Install the latest release from PyPI:
-
-    pip install pygeotools 
-
-**Note**: by default, this will deploy executable scripts in /usr/local/bin
 
 ### Building from source
 
 Clone the repository and install:
 
-    git clone https://github.com/dshean/pygeotools.git
+    git clone https://github.com/tristanblus/pygeotools.git
     pip install -e pygeotools
 
 The -e flag ("editable mode", setuptools "develop mode") will allow you to modify source code and immediately see changes.
 
+Setting the environment path in '~/.bashrc'
+
+    export PATH="/usr/local/pygeotools/pygeotools:$PATH"
+    
 ### Core requirements 
 - [GDAL/OGR](http://www.gdal.org/)
 - [NumPy](http://www.numpy.org/)
