@@ -20,6 +20,7 @@ def getparser():
     parser.add_argument('-overwrite', action='store_true', help='Overwrite original file')
     parser.add_argument('src_fn', type=str, help='Input raster filename')
     parser.add_argument('new_ndv', type=str, help='New NoData value (e.g., -9999)')
+    parser.add_argument('-old_dn', type=str, help='DN velue to set as nodata')
     return parser
 
 def main():
@@ -28,6 +29,7 @@ def main():
 
     src_fn = args.src_fn
     new_ndv = args.new_ndv
+    old_dn = float(args.old_dn)
 
     #Input argument is a string, which is not recognized by set_fill_value
     #Must use np.nan object
@@ -50,16 +52,19 @@ def main():
     print(src_fn)
     print("Replacing old ndv %s with new ndv %s" % (old_ndv, new_ndv))
 
-    #Load masked array
+    # Load masked array
     bma = iolib.ds_getma(ds)
 
-    #Handle cases with input ndv of nan
-    #if old_ndv == np.nan:
+    # Handle cases with input ndv of nan
+    # if old_ndv == np.nan:
     bma = np.ma.fix_invalid(bma)
 
-    #Set new fill value
+    if old_dn is not None:
+        bma[np.where(bma == old_dn)] = new_ndv
+
+    # Set new fill value
     bma.set_fill_value(new_ndv)
-    #Fill ma with new value and write out
+    # Fill ma with new value and write out
     iolib.writeGTiff(bma.filled(), out_fn, ds, ndv=new_ndv)
 
 if __name__ == '__main__':
