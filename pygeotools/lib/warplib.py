@@ -16,7 +16,7 @@ Instead of doing the 'first' stuff, check actual values before writing out origi
 """
 
 import sys
-import os 
+import os
 import math
 
 from osgeo import gdal, osr
@@ -28,15 +28,18 @@ from pygeotools.lib import iolib
 mem_drv = iolib.mem_drv
 gtif_drv = iolib.gtif_drv
 
-#Note: can run into filesystem limits for number of open files
-#http://superuser.com/questions/433746/is-there-a-fix-for-the-too-many-open-files-in-system-error-on-os-x-10-7-1
+# Note: can run into filesystem limits for number of open files
+# http://superuser.com/questions/433746/is-there-a-fix-for-the-too-many-open-files-in-system-error-on-os-x-10-7-1
 gdal.SetConfigOption('GDAL_MAX_DATASET_POOL_SIZE', '2048')
-#Need to set in the shell
-#ulimit -S -n 2048
-#import resource
-#resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
 
-def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None, dst_ndv=None, options=[], verbose=True):
+
+# Need to set in the shell
+# ulimit -S -n 2048
+# import resource
+# resource.setrlimit(resource.RLIMIT_CORE,(resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+
+def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, dst_fn=None, dst_ndv=None, options=[],
+         verbose=True):
     """Warp an input dataset with predetermined arguments specifying output res/extent/srs
 
     This is the function that actually calls gdal.ReprojectImage
@@ -70,13 +73,13 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
 
     """
     src_srs = geolib.get_ds_srs(src_ds)
-    
+
     if t_srs is None:
         t_srs = geolib.get_ds_srs(src_ds)
-    
+
     src_gt = src_ds.GetGeoTransform()
-    #Note: get_res returns [x_res, y_res]
-    #Could just use gt here and average x_res and y_res
+    # Note: get_res returns [x_res, y_res]
+    # Could just use gt here and average x_res and y_res
     src_res = geolib.get_res(src_ds, t_srs=t_srs, square=False)
 
     if res is None:
@@ -84,66 +87,66 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
 
     if extent is None:
         extent = geolib.ds_geom_extent(src_ds, t_srs=t_srs)
-    
-    #Note: GDAL Lanczos creates block artifacts
-    #Wait for gdalwarp to support gaussian resampling
-    #Want to use Lanczos for downsampling
-    #if src_res < res:
+
+    # Note: GDAL Lanczos creates block artifacts
+    # Wait for gdalwarp to support gaussian resampling
+    # Want to use Lanczos for downsampling
+    # if src_res < res:
     #    gra = gdal.GRA_Lanczos
-    #See http://blog.codinghorror.com/better-image-resizing/
+    # See http://blog.codinghorror.com/better-image-resizing/
     # Suggests cubic for downsampling, bilinear for upsampling
     #    gra = gdal.GRA_Cubic
-    #Cubic for upsampling
-    #elif src_res >= res:
+    # Cubic for upsampling
+    # elif src_res >= res:
     #    gra = gdal.GRA_Bilinear
 
     gra = parse_rs_alg(r)
 
-    #At this point, the resolution and extent values must be float
-    #Extent must be list
+    # At this point, the resolution and extent values must be float
+    # Extent must be list
     res = [float(i) for i in res]
     extent = [float(i) for i in extent]
 
-    #Might want to move this to memwarp_multi, keep memwarp basic w/ gdal.GRA types
+    # Might want to move this to memwarp_multi, keep memwarp basic w/ gdal.GRA types
 
-    #Create progress function
+    # Create progress function
     prog_func = None
     if verbose:
         prog_func = gdal.TermProgress
-    
+
     if dst_fn is None:
-        #This is a dummy fn if only in mem, but can be accessed later via GetFileList()
-        #Actually, no, doesn't look like the filename survivies
+        # This is a dummy fn if only in mem, but can be accessed later via GetFileList()
+        # Actually, no, doesn't look like the filename survivies
         dst_fn = ''
-    
-    #Compute output image dimensions
-    dst_nl = int(round((extent[3] - extent[1])/res[1]))
-    dst_ns = int(round((extent[2] - extent[0])/res[0]))
-    #dst_nl = int(math.ceil((extent[3] - extent[1])/res))
-    #dst_ns = int(math.ceil((extent[2] - extent[0])/res))
-    #dst_nl = int(math.floor((extent[3] - extent[1])/res))
-    #dst_ns = int(math.floor((extent[2] - extent[0])/res))
+
+    # Compute output image dimensions
+    dst_nl = int(round((extent[3] - extent[1]) / res[1]))
+    dst_ns = int(round((extent[2] - extent[0]) / res[0]))
+    # dst_nl = int(math.ceil((extent[3] - extent[1])/res))
+    # dst_ns = int(math.ceil((extent[2] - extent[0])/res))
+    # dst_nl = int(math.floor((extent[3] - extent[1])/res))
+    # dst_ns = int(math.floor((extent[2] - extent[0])/res))
     if verbose:
         print('nl: %i ns: %i res_X: %0.3f res_Y: %0.3f' % (dst_nl, dst_ns, res[0], res[1]))
-    #Create output dataset
+    # Create output dataset
     src_b = src_ds.GetRasterBand(1)
     src_dt = src_b.DataType
     src_nl = src_ds.RasterYSize
     src_ns = src_ds.RasterXSize
 
-    #Note: for diskwarp, want to write out with LZW, TILED
-    dst_ds = driver.Create(dst_fn, dst_ns, dst_nl, src_ds.RasterCount, src_dt, options=options) 
+    # Note: for diskwarp, want to write out with LZW, TILED
+    dst_ds = driver.Create(dst_fn, dst_ns, dst_nl, src_ds.RasterCount, src_dt, options=options)
 
     dst_ds.SetProjection(t_srs.ExportToWkt())
-    #Might be an issue to use src_gt rotation terms here with arbitrary extent/res
+    # Might be an issue to use src_gt rotation terms here with arbitrary extent/res
     dst_gt = [extent[0], res[0], src_gt[2], extent[3], src_gt[4], -res[1]]
     dst_ds.SetGeoTransform(dst_gt)
-   
-    #This will smooth the input before downsampling to prevent aliasing, fill gaps
-    #Pretty inefficent, as we need to create another intermediate dataset
-    gauss = False 
 
-    for n in range(1, src_ds.RasterCount+1):
+    # This will smooth the input before downsampling to prevent aliasing, fill gaps
+    # Pretty inefficent, as we need to create another intermediate dataset
+    gauss = False
+
+    for n in range(1, src_ds.RasterCount + 1):
         if dst_ndv is None:
             src_b = src_ds.GetRasterBand(n)
             src_ndv = iolib.get_ndv_b(src_b)
@@ -154,22 +157,22 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
 
         if gauss:
             from pygeotools.lib import filtlib
-            #src_a = src_b.GetVirtualMemArray()
-            #Compute resampling ratio to determine filter window size
-            res_ratio = ((float([res[0]])/src_res[0])+(float(res[1])/src_res[1]))/2
+            # src_a = src_b.GetVirtualMemArray()
+            # Compute resampling ratio to determine filter window size
+            res_ratio = ((float([res[0]]) / src_res[0]) + (float(res[1]) / src_res[1])) / 2
             if verbose:
                 print("Resampling factor:  %0.3f" % res_ratio)
-            #Might be more efficient to do iterative gauss filter with size 3, rather than larger windows
-            f_size = math.floor(res_ratio/2.)*2+1
-            #This is conservative to avoid filling holes with noise
-            #f_size = math.floor(res_ratio/2.)*2-1
+            # Might be more efficient to do iterative gauss filter with size 3, rather than larger windows
+            f_size = math.floor(res_ratio / 2.) * 2 + 1
+            # This is conservative to avoid filling holes with noise
+            # f_size = math.floor(res_ratio/2.)*2-1
             if f_size <= 1:
                 continue
 
             if verbose:
                 print("Smoothing window size: %i" % f_size)
-            #Create temp dataset to store filtered array - avoid overwriting original
-            temp_ds = driver.Create('', src_ns, src_nl, src_ds.RasterCount, src_dt) 
+            # Create temp dataset to store filtered array - avoid overwriting original
+            temp_ds = driver.Create('', src_ns, src_nl, src_ds.RasterCount, src_dt)
             temp_ds.SetProjection(src_srs.ExportToWkt())
             temp_ds.SetGeoTransform(src_gt)
             temp_b = temp_ds.GetRasterBand(n)
@@ -178,13 +181,13 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
 
             src_a = iolib.b_getma(src_b)
             src_a = filtlib.gauss_fltr_astropy(src_a, size=f_size)
-            #Want to run with maskfill, so only fills gaps, without expanding isolated points
+            # Want to run with maskfill, so only fills gaps, without expanding isolated points
             temp_b.WriteArray(src_a)
             src_ds = temp_ds
-            
-            #In theory, NN should be fine since we already smoothed.  In practice, cubic still provides slightly better results
-            #gra = gdal.GRA_NearestNeighbour
-    
+
+            # In theory, NN should be fine since we already smoothed.  In practice, cubic still provides slightly
+            # better results gra = gdal.GRA_NearestNeighbour
+
     """
     if not verbose:
         #Suppress GDAL progress bar
@@ -192,7 +195,7 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
         sys.stdout = open(os.devnull, 'w')
     """
 
-    #Note: default maxerror=0.0, second 0.0 argument
+    # Note: default maxerror=0.0, second 0.0 argument
     gdal.ReprojectImage(src_ds, dst_ds, src_srs.ExportToWkt(), t_srs.ExportToWkt(), gra, 0.0, 0.0, prog_func)
 
     """
@@ -201,48 +204,53 @@ def warp(src_ds, res=None, extent=None, t_srs=None, r='cubic', driver=mem_drv, d
         sys.stdout = orig_stdout
     """
 
-    #Note: this is now done in diskwarp
-    #Write out to disk
-    #if driver != mem_drv:
+    # Note: this is now done in diskwarp
+    # Write out to disk
+    # if driver != mem_drv:
     #    dst_ds.FlushCache()
 
-    #Return GDAL dataset object in memory
+    # Return GDAL dataset object in memory
     return dst_ds
 
-#Use this to warp to mem ds
-#NOTE: there is a bug in GDAL that mem datasets are initialized with ndv of 0, even if ds has different ndv set
-#http://gis.stackexchange.com/questions/158503/9999-no-data-value-becomes-0-when-writing-array-to-gdal-memory-file
-#Hardcode 0 here
+
+# Use this to warp to mem ds
+# NOTE: there is a bug in GDAL that mem datasets are initialized with ndv of 0, even if ds has different ndv set
+# http://gis.stackexchange.com/questions/158503/9999-no-data-value-becomes-0-when-writing-array-to-gdal-memory-file
+# Hardcode 0 here
 def memwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', oudir=None, dst_ndv=0, verbose=True):
     """Helper function that calls warp for single input Dataset with output to memory (GDAL Memory Driver)
     """
     driver = iolib.mem_drv
     return warp(src_ds, res, extent, t_srs, r, driver=driver, dst_ndv=dst_ndv, verbose=verbose)
 
-#Use this to warp directly to output file - no need to write to memory then CreateCopy 
-def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, dst_fn=None, dst_ndv=None, verbose=True):
+
+# Use this to warp directly to output file - no need to write to memory then CreateCopy
+def diskwarp(src_ds, res=None, extent=None, t_srs=None, r='cubic', outdir=None, dst_fn=None, dst_ndv=None,
+             verbose=True):
     """Helper function that calls warp for single input Dataset with output to disk (GDAL GeoTiff Driver)
     """
     gdal.AllRegister()
     if dst_fn is None:
-        dst_fn = os.path.splitext(src_ds.GetFileList()[0])[0]+'_warp.tif'
+        dst_fn = os.path.splitext(src_ds.GetFileList()[0])[0] + '_warp.tif'
     if outdir is not None:
-        dst_fn = os.path.join(outdir, os.path.basename(dst_fn))  
+        dst_fn = os.path.join(outdir, os.path.basename(dst_fn))
     driver = iolib.gtif_drv
-    dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn, dst_ndv=dst_ndv, verbose=verbose, options=iolib.gdal_opt)
-    #Write out
+    dst_ds = warp(src_ds, res, extent, t_srs, r, driver, dst_fn, dst_ndv=dst_ndv, verbose=verbose,
+                  options=iolib.gdal_opt)
+    # Write out
     dst_ds = None
-    #Now reopen ds from disk
+    # Now reopen ds from disk
     dst_ds = gdal.Open(dst_fn)
     return dst_ds
+
 
 def parse_rs_alg(r):
     """Parse resampling algorithm
     """
-    #Note:GRA_CubicSpline created huge block artifacts for the St. Helen's compute_dh WV cases
-    #Stick with CubicSpline for both upsampling/downsampling for now
+    # Note:GRA_CubicSpline created huge block artifacts for the St. Helen's compute_dh WV cases
+    # Stick with CubicSpline for both upsampling/downsampling for now
     if r == 'near':
-        #Note: Nearest respects nodata when downsampling
+        # Note: Nearest respects nodata when downsampling
         gra = gdal.GRA_NearestNeighbour
     elif r == 'bilinear':
         gra = gdal.GRA_Bilinear
@@ -255,12 +263,13 @@ def parse_rs_alg(r):
     elif r == 'lanczos':
         gra = gdal.GRA_Lanczos
     elif r == 'mode':
-        #Note: Mode respects nodata when downsampling, but very slow
+        # Note: Mode respects nodata when downsampling, but very slow
         gra = gdal.GRA_Mode
     else:
         gra = None
         sys.exit("Invalid resampling method")
     return gra
+
 
 def parse_srs(t_srs, src_ds_list=None):
     """Parse arbitrary input t_srs
@@ -287,13 +296,13 @@ def parse_srs(t_srs, src_ds_list=None):
         elif t_srs == 'last' and src_ds_list is not None:
             t_srs = geolib.get_ds_srs(src_ds_list[-1])
         elif t_srs == 'source' and src_ds_list is not None:
-            #Assume ds to be warped is first in ds_list
+            # Assume ds to be warped is first in ds_list
             t_srs = geolib.get_ds_srs(src_ds_list[0])
-        elif isinstance(t_srs, osr.SpatialReference): 
+        elif isinstance(t_srs, osr.SpatialReference):
             pass
         elif isinstance(t_srs, gdal.Dataset):
             t_srs = geolib.get_ds_srs(t_srs)
-        elif isinstance(t_srs, str) and os.path.exists(t_srs): 
+        elif isinstance(t_srs, str) and os.path.exists(t_srs):
             t_srs = geolib.get_ds_srs(gdal.Open(t_srs))
         elif isinstance(t_srs, str):
             temp = osr.SpatialReference()
@@ -303,12 +312,13 @@ def parse_srs(t_srs, src_ds_list=None):
             elif 'proj' in t_srs:
                 temp.ImportFromProj4(t_srs)
             else:
-                #Assume the user knows what they are doing
+                # Assume the user knows what they are doing
                 temp.ImportFromWkt(t_srs)
             t_srs = temp
         else:
             t_srs = None
     return t_srs
+
 
 def parse_res(res, src_ds_list=None, t_srs=None):
     """Parse arbitrary input res 
@@ -328,16 +338,16 @@ def parse_res(res, src_ds_list=None, t_srs=None):
         Output resolution
         None if source resolution should be preserved
     """
-    #Default to using first t_srs for res calculations
-    #Assumes src_ds_list is not None
+    # Default to using first t_srs for res calculations
+    # Assumes src_ds_list is not None
     t_srs = parse_srs(t_srs, src_ds_list)
 
-    #Valid options for res
+    # Valid options for res
     res_str_list = ['first', 'last', 'min', 'max', 'mean', 'med', 'common_scale_factor']
 
-    #Compute output resolution in t_srs
+    # Compute output resolution in t_srs
     if res in res_str_list and src_ds_list is not None:
-        #Returns min, max, mean, med
+        # Returns min, max, mean, med
         res_stats = geolib.get_res_stats(src_ds_list, t_srs=t_srs)
         if res == 'first':
             res = geolib.get_res(src_ds_list[0], t_srs=t_srs, square=False)
@@ -352,17 +362,18 @@ def parse_res(res, src_ds_list=None, t_srs=None):
         elif res == 'med':
             res = res_stats[3]
         elif res == 'common_scale_factor':
-            #Determine res to upsample min and downsample max by constant factor
-            res = np.sqrt(res_stats[1]/res_stats[0]) * res_stats[0]
+            # Determine res to upsample min and downsample max by constant factor
+            res = np.sqrt(res_stats[1] / res_stats[0]) * res_stats[0]
     elif res == 'source':
         res = None
     elif isinstance(res, gdal.Dataset):
         res = geolib.get_res(res, t_srs=t_srs, square=False)
-    elif isinstance(res, str) and os.path.exists(res): 
+    elif isinstance(res, str) and os.path.exists(res):
         res = geolib.get_res(gdal.Open(res), t_srs=t_srs, square=False)
     else:
         res = res
     return res
+
 
 def parse_extent(extent, src_ds_list=None, t_srs=None):
     """Parse arbitrary input extent
@@ -383,11 +394,11 @@ def parse_extent(extent, src_ds_list=None, t_srs=None):
         None if source extent should be preserved
     """
 
-    #Default to using first t_srs for extent calculations
+    # Default to using first t_srs for extent calculations
     if t_srs is not None:
         t_srs = parse_srs(t_srs, src_ds_list)
 
-    #Valid strings
+    # Valid strings
     extent_str_list = ['first', 'last', 'intersection', 'union']
 
     if extent in extent_str_list and src_ds_list is not None:
@@ -395,23 +406,23 @@ def parse_extent(extent, src_ds_list=None, t_srs=None):
             extent = None
         elif extent == 'first':
             extent = geolib.ds_geom_extent(src_ds_list[0], t_srs=t_srs)
-            #extent = geolib.ds_extent(src_ds_list[0], t_srs=t_srs)
+            # extent = geolib.ds_extent(src_ds_list[0], t_srs=t_srs)
         elif extent == 'last':
             extent = geolib.ds_geom_extent(src_ds_list[-1], t_srs=t_srs)
-            #extent = geolib.ds_extent(src_ds_list[-1], t_srs=t_srs)
+            # extent = geolib.ds_extent(src_ds_list[-1], t_srs=t_srs)
         elif extent == 'intersection':
-            #By default, compute_intersection takes ref_srs from ref_ds
+            # By default, compute_intersection takes ref_srs from ref_ds
             extent = geolib.ds_geom_intersection_extent(src_ds_list, t_srs=t_srs)
             if len(src_ds_list) > 1 and extent is None:
                 sys.exit("Input images do not intersect")
         elif extent == 'union':
-            #Need to clean up union t_srs handling
+            # Need to clean up union t_srs handling
             extent = geolib.ds_geom_union_extent(src_ds_list, t_srs=t_srs)
     elif extent == 'source':
         extent = None
     elif isinstance(extent, gdal.Dataset):
         extent = geolib.ds_geom_extent(extent, t_srs=t_srs)
-    elif isinstance(extent, str) and os.path.exists(extent): 
+    elif isinstance(extent, str) and os.path.exists(extent):
         extent = geolib.ds_geom_extent(gdal.Open(extent), t_srs=t_srs)
     elif isinstance(extent, (list, tuple, np.ndarray)):
         extent = list(extent)
@@ -419,7 +430,9 @@ def parse_extent(extent, src_ds_list=None, t_srs=None):
         extent = [float(i) for i in extent.split(' ')]
     return extent
 
-def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', warptype=memwarp, outdir=None, dst_ndv=None, verbose=True, debug=False):
+
+def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', warptype=memwarp, outdir=None,
+               dst_ndv=None, verbose=True, debug=False):
     """This parses and checks inputs, then calls desired warp function with appropriate arguments for each input ds
     
     Parameters
@@ -450,13 +463,13 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
     out_ds_list : list of gdal.Dataset objects
         List of warped datasets (either in memory or on disk)
     """
-    #Type cast arguments as str for evaluation
-    #Avoid path errors
-    #res = str(res)
-    #extent = str(extent)
-    #t_srs = str(t_srs)
+    # Type cast arguments as str for evaluation
+    # Avoid path errors
+    # res = str(res)
+    # extent = str(extent)
+    # t_srs = str(t_srs)
 
-    #Parse the input
+    # Parse the input
     t_srs = parse_srs(t_srs, src_ds_list)
     res = parse_res(res, src_ds_list, t_srs)
     extent = parse_extent(extent, src_ds_list, t_srs)
@@ -466,7 +479,7 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         print("Resolution: %s" % res)
         print("Extent: %s" % str(extent))
         print("Projection: '%s'" % t_srs.ExportToProj4())
-        print("Resampling alg: %s\n" % r)  
+        print("Resampling alg: %s\n" % r)
 
     out_ds_list = []
     for i, ds in enumerate(src_ds_list):
@@ -475,12 +488,12 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         if fn_list is not None:
             fn = fn_list[0]
         if verbose:
-            print("%i of %i: %s" % (i+1, len(src_ds_list), fn))
+            print("%i of %i: %s" % (i + 1, len(src_ds_list), fn))
 
-        #If input srs are different, must warp
+        # If input srs are different, must warp
         ds_t_srs = geolib.get_ds_srs(ds)
         srscheck = bool(t_srs.IsSame(ds_t_srs))
-       
+
         if debug:
             print('\n%s' % ds_t_srs.ExportToWkt())
             print('%s\n' % t_srs.ExportToWkt())
@@ -489,15 +502,15 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         rescheck = False
         extentcheck = False
 
-        #if srscheck:
-        #Extract info from ds to see if warp is necessary
+        # if srscheck:
+        # Extract info from ds to see if warp is necessary
         ds_res = geolib.get_res(ds, square=False)
         ds_extent = geolib.ds_extent(ds)
 
-        #Note: these checks necessary to handle rounding and precision issues
-        #Round extent and res to nearest mm
+        # Note: these checks necessary to handle rounding and precision issues
+        # Round extent and res to nearest mm
         precision = 1E-3
-        #Or if t_srs has units of degrees
+        # Or if t_srs has units of degrees
         if ds_t_srs.IsGeographic():
             precision = 1E-8
 
@@ -505,13 +518,13 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
         extentcheck = (extent is None) or geolib.extent_compare(extent, ds_extent, precision=precision)
 
         if debug:
-            print('\n%s, %s\n' % (ds_res, res)) 
+            print('\n%s, %s\n' % (ds_res, res))
             print('%s' % ds_extent)
-            print('%s\n' % extent) 
+            print('%s\n' % extent)
             print('rescheck: %s' % rescheck)
             print('extentcheck: %s\n' % extentcheck)
 
-        #If the ds passes all three, it is identical to desired output, short circuit
+        # If the ds passes all three, it is identical to desired output, short circuit
         if rescheck and extentcheck and srscheck:
             out_ds_list.append(ds)
         else:
@@ -521,33 +534,42 @@ def warp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r
 
     return out_ds_list
 
+
 def memwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=True, dst_ndv=0):
     """Helper function for memwarp of multiple input GDAL Datasets
     """
     return warp_multi(src_ds_list, res, extent, t_srs, r, warptype=memwarp, verbose=verbose, dst_ndv=dst_ndv)
 
-def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=True, dst_ndv=0):
+
+def memwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=True,
+                     dst_ndv=0):
     """Helper function for memwarp of multiple input filenames
     """
-    #Should implement proper error handling here
+    # Should implement proper error handling here
     if not iolib.fn_list_check(src_fn_list):
         sys.exit('Missing input file(s)')
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
     return memwarp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, dst_ndv=dst_ndv)
 
-def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=True, outdir=None, dst_ndv=None):
+
+def diskwarp_multi(src_ds_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=True, outdir=None,
+                   dst_ndv=None):
     """Helper function for diskwarp of multiple input GDAL Datasets
     """
-    return warp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, warptype=diskwarp, outdir=outdir, dst_ndv=dst_ndv)
+    return warp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, warptype=diskwarp, outdir=outdir,
+                      dst_ndv=dst_ndv)
 
-def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=True, outdir=None, dst_ndv=None):
+
+def diskwarp_multi_fn(src_fn_list, res='first', extent='intersection', t_srs='first', r='cubic', verbose=True,
+                      outdir=None, dst_ndv=None):
     """Helper function for diskwarp of multiple input filenames
     """
-    #Should implement proper error handling here
+    # Should implement proper error handling here
     if not iolib.fn_list_check(src_fn_list):
         sys.exit('Missing input file(s)')
     src_ds_list = [gdal.Open(fn, gdal.GA_ReadOnly) for fn in src_fn_list]
     return diskwarp_multi(src_ds_list, res, extent, t_srs, r, verbose=verbose, outdir=outdir, dst_ndv=dst_ndv)
+
 
 def writeout(ds, outfn):
     """Write ds to disk
@@ -555,8 +577,8 @@ def writeout(ds, outfn):
     Note: Depreciated function - use diskwarp functions when writing to disk to avoid unnecessary CreateCopy
 
     """
-    print("Writing out %s" % outfn) 
-    #Use outfn extension to get driver
-    #This may have issues if outfn already exists and the mem ds has different dimensions/res
+    print("Writing out %s" % outfn)
+    # Use outfn extension to get driver
+    # This may have issues if outfn already exists and the mem ds has different dimensions/res
     out_ds = iolib.gtif_drv.CreateCopy(outfn, ds, 0, options=iolib.gdal_opt)
     out_ds = None
