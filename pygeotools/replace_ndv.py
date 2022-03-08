@@ -20,7 +20,7 @@ def getparser():
     parser.add_argument('-overwrite', action='store_true', help='Overwrite original file')
     parser.add_argument('src_fn', type=str, help='Input raster filename')
     parser.add_argument('new_ndv', type=str, help='New NoData value (e.g., -9999)')
-    parser.add_argument('-old_dn', type=str, help='DN velue to set as nodata')
+    parser.add_argument('-old_dn', type=str, default=None, help='DN velue to set as nodata')
     return parser
 
 def main():
@@ -29,7 +29,7 @@ def main():
 
     src_fn = args.src_fn
     new_ndv = args.new_ndv
-    old_dn = float(args.old_dn)
+    old_dn = args.old_dn
 
     #Input argument is a string, which is not recognized by set_fill_value
     #Must use np.nan object
@@ -38,16 +38,17 @@ def main():
     else:
         new_ndv = float(new_ndv)
 
-    #Output filename will have ndv appended
+    # Output filename will have ndv appended
     if args.overwrite:
         out_fn = src_fn
     else:
-        out_fn = os.path.splitext(src_fn)[0]+'_ndv.tif'
+        out_fn = os.path.splitext(src_fn)[0] + '_ndv.tif'
 
     ds = gdal.Open(src_fn)
     b = ds.GetRasterBand(1)
-    #Extract old ndv
-    old_ndv = iolib.get_ndv_b(b)
+    # Extract old ndv
+    if old_dn is None:
+        old_ndv = iolib.get_ndv_b(b)
 
     print(src_fn)
     print("Replacing old ndv %s with new ndv %s" % (old_ndv, new_ndv))
@@ -60,7 +61,7 @@ def main():
     bma = np.ma.fix_invalid(bma)
 
     if old_dn is not None:
-        bma[np.where(bma == old_dn)] = new_ndv
+        bma[np.where(bma == float(old_dn))] = new_ndv
 
     # Set new fill value
     bma.set_fill_value(new_ndv)

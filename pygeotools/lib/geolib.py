@@ -1933,14 +1933,18 @@ def wgs84_to_egm96(dem_ds, geoid_dir=None):
 
 #Run ASP dem_geoid adjustment utility
 #Note: this is multithreaded
-def dem_geoid(dem_fn):
+def dem_geoid(dem_fn, reverse=False):
+    # reverse false: wgs84 to egm96
+    #         true : egm96 to wgs84
     out_prefix = os.path.splitext(dem_fn)[0]
-    adj_fn = out_prefix +'-adj.tif'
+    adj_fn = out_prefix + '-adj.tif'
     if not os.path.exists(adj_fn):
         import subprocess
         cmd_args = ["-o", out_prefix, dem_fn]
+        if reverse is True:
+            cmd_args = cmd_args + ['--reverse-adjustment']
         cmd = ['dem_geoid'] + cmd_args
-        #cmd = 'dem_geoid -o %s %s' % (out_prefix, dem_fn)
+        # cmd = 'dem_geoid -o %s %s' % (out_prefix, dem_fn)
         print(' '.join(cmd))
         subprocess.call(cmd, shell=False)
     adj_ds = gdal.Open(adj_fn, gdal.GA_ReadOnly)
@@ -2195,12 +2199,13 @@ def get_proj(geom, proj_list=None):
     out_srs = None
     if proj_list is None:
         proj_list = gen_proj_list()
-    #Go through user-defined projeciton list
-    for projbox in proj_list:
-        if projbox.geom.Intersects(geom):
-            out_srs = projbox.srs
-            break
-    #If geom doesn't fall in any of the user projection bbox, use UTM
+    # Go through user-defined projeciton list
+    # note: user-difined srs error
+    # for projbox in proj_list:
+    #     if projbox.geom.Intersects(geom):
+    #         out_srs = projbox.srs
+    #         break
+    # If geom doesn't fall in any of the user projection bbox, use UTM
     if out_srs is None:
         out_srs = getUTMsrs(geom)
     return out_srs
@@ -2259,11 +2264,11 @@ site_dict['hma'] = Site(name='hma', extent=(66, 106, 25, 47), srs=hma_aea_srs, r
 #bbox should be [minlon, maxlon, minlat, maxlat]
 #bbox should be [min_x, max_x, min_y, max_y]
 def bbox2geom(bbox, a_srs=wgs_srs, t_srs=None):
-    #Check bbox
-    #bbox = numpy.array([-180, 180, 60, 90])
-    x = [bbox[0], bbox[0], bbox[1], bbox[1], bbox[0]]
-    y = [bbox[2], bbox[3], bbox[3], bbox[2], bbox[2]]
-    geom_wkt = 'POLYGON(({0}))'.format(', '.join(['{0} {1}'.format(*a) for a in zip(x,y)]))
+    # Check bbox
+    # bbox = numpy.array([-180, 180, 60, 90])
+    x = [bbox[0], bbox[0], bbox[2], bbox[2], bbox[0]]
+    y = [bbox[1], bbox[3], bbox[3], bbox[1], bbox[1]]
+    geom_wkt = 'POLYGON(({0}))'.format(', '.join(['{0} {1}'.format(*a) for a in zip(x, y)]))
     geom = ogr.CreateGeometryFromWkt(geom_wkt)
     if a_srs is not None:
         if int(gdal.__version__.split('.')[0]) >= 3:
